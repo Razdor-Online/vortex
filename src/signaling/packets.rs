@@ -36,11 +36,11 @@ pub struct RemoteTrack {
 pub struct ICECandidate {
     pub candidate: String,
     #[serde(default)]
-    pub sdp_mid: String,
+    pub sdp_mid: Option<String>,
     #[serde(default)]
-    pub sdp_mline_index: u16,
+    pub sdp_mline_index: Option<u16>,
     #[serde(default)]
-    pub username_fragment: String,
+    pub username_fragment: Option<String>,
 }
 
 /// Either description or ICE candidate

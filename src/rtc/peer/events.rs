@@ -11,7 +11,7 @@ use webrtc::{
     },
     Error,
 };
-
+use webrtc::rtp_transceiver::RTCRtpTransceiver;
 use crate::signaling::packets::{MediaType, Negotiation, ServerError};
 
 use super::Peer;
@@ -43,8 +43,7 @@ impl Peer {
             .on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
                 debug!("Peer connection state: {}", s);
                 Box::pin(async {})
-            }))
-            .await;
+            }));
 
         // Monitor negotiation state
         let peer_negotiation = peer.clone();
@@ -56,8 +55,7 @@ impl Peer {
                         error!("Failed to re-negotiate: {}", error.to_string());
                     }
                 })
-            }))
-            .await;
+            }));
 
         // Catch any new ICE candidates
         let peer_ice = peer.clone();
@@ -66,7 +64,7 @@ impl Peer {
                 let negotiation_fn = peer_ice.negotation_fn.clone();
                 Box::pin(async move {
                     if let Some(candidate) = candidate {
-                        if let Ok(candidate) = candidate.to_json().await {
+                        if let Ok(candidate) = candidate.to_json() {
                             (negotiation_fn)(Negotiation::ICE {
                                 candidate: candidate.into(),
                             })
@@ -75,104 +73,103 @@ impl Peer {
                         }
                     }
                 })
-            }))
-            .await;
+            }));
 
         // Set handler for new tracks
         self.connection
             .on_track(Box::new(
-                move |track: Option<Arc<TrackRemote>>, _receiver: Option<Arc<RTCRtpReceiver>>| {
-                    if let Some(track) = track {
-                        // Spawn a new task for handling this track
-                        let peer = peer.clone();
-                        tokio::spawn(async move {
-                            // Verify this is a track we are expecting to receive
-                            let id = track.id().await;
+                move |track : Arc<TrackRemote>,
+                      _receiver:  Arc<RTCRtpReceiver>,
+                      _trans_receiver: Arc<RTCRtpTransceiver>| {
 
-                            // Find the media type
-                            let mut media_type_buffer = peer.media_type_buffer.lock().await;
-                            let item = if media_type_buffer.is_empty() {
-                                None
-                            } else {
-                                Some(media_type_buffer.remove(0))
-                            };
+                        // Spawn a new task for handling this track
+                    let peer = peer.clone();
+                    tokio::spawn(async move {
+                        // Verify this is a track we are expecting to receive
+                        let id = track.id();
+
+                        // Find the media type
+                        let mut media_type_buffer = peer.media_type_buffer.lock().await;
+                        let item = if media_type_buffer.is_empty() {
+                            None
+                        } else {
+                            Some(media_type_buffer.remove(0))
+                        };
+
+                        // Release Mutex lock
+                        drop(media_type_buffer);
+
+                        if let Some(media_type) =
+                            item
+                        {
+                            // Write the media type
+                            let mut track_map = peer.track_map.lock().await;
+                            track_map.insert(media_type.clone(), id.to_owned());
 
                             // Release Mutex lock
-                            drop(media_type_buffer);
+                            drop(track_map);
 
-                            if let Some(media_type) =
-                                item
-                            {
-                                // Write the media type
-                                let mut track_map = peer.track_map.lock().await;
-                                track_map.insert(media_type.clone(), id.to_owned());
+                            if matches!(media_type, MediaType::Video | MediaType::ScreenVideo) {
+                                // Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
+                                // This is a temporary fix until we implement incoming RTCP events, then we would push a PLI only when a viewer requests it
+                                let media_ssrc = track.ssrc();
+                                tokio::spawn(async move {
+                                    let mut result = Result::<usize>::Ok(0);
+                                    while result.is_ok() {
+                                        let timeout = tokio::time::sleep(Duration::from_secs(1));
+                                        tokio::pin!(timeout);
 
-                                // Release Mutex lock
-                                drop(track_map);
+                                        // TODO: need to kill this
+                                        tokio::select! {
+                                            _ = timeout.as_mut() => {
+                                                result = peer.connection.write_rtcp(&[Box::new(PictureLossIndication {
+                                                    sender_ssrc: 0,
+                                                    media_ssrc,
+                                                })])
+                                                .await
+                                                .map_err(Into::into);
+                                            }
+                                        };
+                                    }
+                                });
+                            }
 
-                                if matches!(media_type, MediaType::Video | MediaType::ScreenVideo) {
-                                    // Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
-                                    // This is a temporary fix until we implement incoming RTCP events, then we would push a PLI only when a viewer requests it
-                                    let media_ssrc = track.ssrc();
-                                    tokio::spawn(async move {
-                                        let mut result = Result::<usize>::Ok(0);
-                                        while result.is_ok() {
-                                            let timeout = tokio::time::sleep(Duration::from_secs(1));
-                                            tokio::pin!(timeout);
+                            // Create track that we send video back through
+                            let local_track = Arc::new(TrackLocalStaticRTP::new(
+                                track.codec().capability,
+                                id.to_owned(),
+                                format!("{}:{}:{id}", peer.user_id, media_type),
+                            ));
 
-                                            // TODO: need to kill this
-                                            tokio::select! {
-                                                _ = timeout.as_mut() => {
-                                                    result = peer.connection.write_rtcp(&[Box::new(PictureLossIndication {
-                                                        sender_ssrc: 0,
-                                                        media_ssrc,
-                                                    })])
-                                                    .await
-                                                    .map_err(Into::into);
-                                                }
-                                            };
-                                        }
-                                    });
-                                }
-                                
-                                // Create track that we send video back through
-                                let local_track = Arc::new(TrackLocalStaticRTP::new(
-                                    track.codec().await.capability,
-                                    id.to_owned(),
-                                    format!("{}:{}:{id}", peer.user_id, media_type),
-                                ));
+                            // Send to other peers
+                            peer.room.add_track(
+                                peer.user_id,
+                                media_type.clone(),
+                                local_track.clone(),
+                            );
 
-                                // Send to other peers
-                                peer.room.add_track(
-                                    peer.user_id,
-                                    media_type.clone(),
-                                    local_track.clone(),
-                                );
-
-                                // Read and forward RTP packets
-                                // TODO: kill track here
-                                while let Ok((rtp, _)) = track.read_rtp().await {
-                                    if let Err(err) = local_track.write_rtp(&rtp).await {
-                                        if Error::ErrClosedPipe != err {
-                                            print!(
-                                                "output track write_rtp got error: {} and break",
-                                                err
-                                            );
-                                            break;
-                                        } else {
-                                            print!("output track write_rtp got error: {}", err);
-                                        }
+                            // Read and forward RTP packets
+                            // TODO: kill track here
+                            while let Ok((rtp, _)) = track.read_rtp().await {
+                                if let Err(err) = local_track.write_rtp(&rtp).await {
+                                    if Error::ErrClosedPipe != err {
+                                        print!(
+                                            "output track write_rtp got error: {} and break",
+                                            err
+                                        );
+                                        break;
+                                    } else {
+                                        print!("output track write_rtp got error: {}", err);
                                     }
                                 }
-                            } else {
-                                error!("Stream sent by {} has no media type for ID {}", peer.user_id, id);
                             }
-                        });
-                    }
+                        } else {
+                            error!("Stream sent by {} has no media type for ID {}", peer.user_id, id);
+                        }
+                    });
 
                     Box::pin(async {})
                 },
-            ))
-            .await;
+            ));
     }
 }
