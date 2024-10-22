@@ -5,6 +5,7 @@ use futures::{
     stream::{SplitSink, SplitStream},
     SinkExt,
 };
+use log::debug;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
 

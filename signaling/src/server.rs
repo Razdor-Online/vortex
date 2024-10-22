@@ -2,11 +2,12 @@ use std::{pin::Pin, sync::Arc};
 
 use anyhow::Result;
 use futures::{Future, StreamExt};
+use log::info;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
-
+use api::server_error::ServerError;
 use super::{
     client::Client,
-    packets::{PacketC2S, PacketS2C, ServerError},
+    packets::{PacketC2S, PacketS2C},
     sender::{ReadWritePair, Sender},
 };
 
@@ -41,7 +42,9 @@ pub async fn launch<A: ToSocketAddrs>(addr: A, auth: AuthFn) -> Result<()> {
     let try_socket = TcpListener::bind(addr).await;
     let listener = try_socket.expect("Failed to bind");
 
-    // Accept new conncetions
+    info!("Waiting for connections...");
+
+    // Accept new connections
     let auth = Arc::new(auth);
     while let Ok((stream, _)) = listener.accept().await {
         tokio::spawn(accept_connection(stream, auth.clone()));

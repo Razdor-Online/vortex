@@ -12,6 +12,7 @@ use std::{
 
 use anyhow::Result;
 use futures::Future;
+use log::warn;
 use webrtc::{
     ice_transport::ice_candidate::RTCIceCandidateInit,
     peer_connection::{
@@ -19,8 +20,9 @@ use webrtc::{
         signaling_state::RTCSignalingState,
     },
 };
-
-use crate::signaling::packets::{MediaType, Negotiation};
+use api::media_type::MediaType;
+use api::negotiation::Negotiation;
+//use crate::signaling::packets::{MediaType, Negotiation};
 
 use super::Peer;
 
@@ -123,7 +125,7 @@ impl Peer {
                 .await?;
 
             // Send an answer back
-            (self.negotation_fn)(Negotiation::SDP {
+            (self.negotiation_fn)(Negotiation::SDP {
                 description: answer,
                 media_type_buffer: None,
             })

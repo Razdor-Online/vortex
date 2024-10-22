@@ -1,0 +1,19 @@
+[package]
+name = "vortex"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dotenv.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+log.workspace = true
+env_logger.workspace = true
+lazy_static.workspace = true
+config.workspace = true
+
+api = { path = "../api" }
+signaling = { path = "../signaling" }
+rtc = { path = "../rtc" }

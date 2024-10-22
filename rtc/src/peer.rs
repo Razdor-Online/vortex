@@ -2,10 +2,11 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use dashmap::DashMap;
+use log::{debug, info};
 use tokio::sync::Mutex;
 use webrtc::peer_connection::RTCPeerConnection;
-
-use crate::signaling::packets::{MediaType, ServerError};
+use ::api::media_type::MediaType;
+use ::api::server_error::ServerError;
 
 use self::{
     monitor::Monitor,
@@ -31,7 +32,7 @@ pub struct Peer {
     track_map: PeerTrackMap,
     track_list: Arc<DashMap<String, Monitor>>,
     negotiation_state: Arc<NegotiationState>,
-    negotation_fn: Arc<NegotiationFn>,
+    negotiation_fn: Arc<NegotiationFn>,
     media_type_buffer: Arc<Mutex<Vec<MediaType>>>,
 }
 
@@ -40,7 +41,7 @@ impl Peer {
     pub async fn new(
         user_id: String,
         room: Arc<Room>,
-        negotation_fn: NegotiationFn,
+        negotiation_fn: NegotiationFn,
     ) -> Result<Self> {
         // Create a new RTCPeerConnection
         let connection = api::create_peer_connection().await?;
@@ -57,7 +58,7 @@ impl Peer {
             track_map,
             track_list: Default::default(),
             negotiation_state: Default::default(),
-            negotation_fn: Arc::new(negotation_fn),
+            negotiation_fn: Arc::new(negotiation_fn),
             media_type_buffer: Default::default(),
         };
 
