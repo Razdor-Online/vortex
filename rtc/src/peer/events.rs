@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
+use log::{debug, error};
 use webrtc::{
     peer_connection::peer_connection_state::RTCPeerConnectionState,
     rtcp::payload_feedbacks::picture_loss_indication::PictureLossIndication,
@@ -12,8 +13,9 @@ use webrtc::{
     Error,
 };
 use webrtc::rtp_transceiver::RTCRtpTransceiver;
-use crate::signaling::packets::{MediaType, Negotiation, ServerError};
-
+use api::media_type::MediaType;
+use api::negotiation::Negotiation;
+use api::server_error::ServerError;
 use super::Peer;
 
 impl Peer {
@@ -61,7 +63,7 @@ impl Peer {
         let peer_ice = peer.clone();
         self.connection
             .on_ice_candidate(Box::new(move |candidate| {
-                let negotiation_fn = peer_ice.negotation_fn.clone();
+                let negotiation_fn = peer_ice.negotiation_fn.clone();
                 Box::pin(async move {
                     if let Some(candidate) = candidate {
                         if let Ok(candidate) = candidate.to_json() {
