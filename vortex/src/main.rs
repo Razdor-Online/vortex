@@ -1,3 +1,5 @@
+mod settings;
+
 #[macro_use]
 extern crate log;
 extern crate serde;
@@ -5,6 +7,7 @@ extern crate lazy_static;
 
 use anyhow::Result;
 use api::server_error::ServerError;
+use crate::settings::Settings;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -12,13 +15,12 @@ async fn main() -> Result<()> {
     env_logger::init_from_env(env_logger::Env::default()
         .filter_or("RUST_LOG", "info"));
 
-    let address = dotenv::var("HTTP_HOST")
-        .unwrap_or_else(|_| "127.0.0.1:3000".to_string());
+    let settings = Settings::new()?;
 
-    info!("Starting vortex server at {}", address);
+    info!("Starting vortex server at {}", &settings.http_host);
 
     signaling::server::launch(
-        address,
+        &settings.http_host,
         Box::new(move |room_id, token| {
             Box::pin(async move {
                 if room_id != "1" {

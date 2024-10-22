@@ -1,8 +1,12 @@
-signaling::server::launch;
 
+use tokio::time;
+use std::time::Duration;
 
-[test]
-fn integration() {
+use api::server_error::ServerError;
+use crate::settings::Settings;
+
+#[tokio::test]
+async fn start_server_and_test() {
     let address = dotenv::var("HTTP_HOST")
         .unwrap_or_else(|_| "127.0.0.1:3000".to_string());
 
@@ -16,7 +20,4 @@ fn integration() {
             Ok(())
         })
     }))
-
-
-
 }
