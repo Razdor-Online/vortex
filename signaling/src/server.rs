@@ -1,4 +1,4 @@
-use std::{pin::Pin, sync::Arc};
+use std::{pin::Pin};
 
 use anyhow::Result;
 use futures::{Future, StreamExt};
@@ -26,6 +26,7 @@ pub struct UserInformation {
     pub capabilities: UserCapabilities,
 }
 
+#[allow(dead_code)]
 /// Authentication function
 type AuthFn = Box<
     dyn (Fn(
@@ -37,7 +38,7 @@ type AuthFn = Box<
 >;
 
 /// Launch a new signaling server
-pub async fn launch<A: ToSocketAddrs>(addr: A, auth: AuthFn) -> Result<()> {
+pub async fn launch<A: ToSocketAddrs>(addr: A) -> Result<()> {
     // Create TCP listener
     let try_socket = TcpListener::bind(addr).await;
     let listener = try_socket.expect("Failed to bind");
@@ -45,16 +46,15 @@ pub async fn launch<A: ToSocketAddrs>(addr: A, auth: AuthFn) -> Result<()> {
     info!("Waiting for connections...");
 
     // Accept new connections
-    let auth = Arc::new(auth);
     while let Ok((stream, _)) = listener.accept().await {
-        tokio::spawn(accept_connection(stream, auth.clone()));
+        tokio::spawn(accept_connection(stream));
     }
 
     Ok(())
 }
 
 /// Accept a new TCP connection
-async fn accept_connection(stream: TcpStream, auth: Arc<AuthFn>) {
+async fn accept_connection(stream: TcpStream) {
     // Validate TCP connection
     stream
         .peer_addr()
@@ -70,7 +70,7 @@ async fn accept_connection(stream: TcpStream, auth: Arc<AuthFn>) {
     let write = Sender::new(write);
 
     // Handle any resulting errors
-    if let Err(error) = handle_connection((read, write.clone()), auth).await {
+    if let Err(error) = handle_connection((read, write.clone())).await {
         write
             .send(PacketS2C::Error {
                 error: error.to_string(),
@@ -81,29 +81,47 @@ async fn accept_connection(stream: TcpStream, auth: Arc<AuthFn>) {
 }
 
 /// Wrap error handling around the connection and authenticate the client
-async fn handle_connection((mut read, write): ReadWritePair, auth: Arc<AuthFn>) -> Result<()> {
+async fn handle_connection((mut read, write): ReadWritePair) -> Result<()> {
     // Wait until valid packet is sent
-    let mut client: Option<Client> = None;
     while let Some(msg) = read.next().await {
         if let Some(packet) = PacketC2S::from(msg?)? {
             if let PacketC2S::Connect { room_id, token } = packet {
-                // Authenticate the client
-                if let Ok(user) = (auth)(room_id.to_owned(), token).await {
-                    info!("Authenticated user {} for room {room_id}", user.id);
-
-                    // Create a new client
-                    client = Some(Client::new(user, room_id));
-                    break;
-                }
+                on_connect(room_id, token, (read, write)).await?;
+                break;
             }
         }
     }
+    Ok(())
+}
 
-    // Check if we are authenticated
-    if let Some(client) = client {
-        // Accept the new client
-        client.run((read, write)).await
-    } else {
-        Err(ServerError::FailedToAuthenticate.into())
+async fn on_connect(room_id: String,
+                    token: String,
+                    read_write_pair: ReadWritePair) -> Result<()> {
+    // Authenticate the client
+    let  (read, write) = read_write_pair;
+    match on_auth(room_id.to_owned(), token, write.clone()).await
+    {
+        Ok(user) => {
+            info!("Authenticated user {} for room {room_id}", user.id);
+            // Create a new client
+            let client = Client::new(user, room_id);
+            client.run((read, write)).await
+        }
+        Err(_) => {
+            Err(ServerError::FailedToAuthenticate.into())
+        }
     }
+}
+
+#[allow( unused_variables, dead_code)]
+async fn on_auth(room_id: String, token: String, sender: Sender) -> Result<UserInformation> {
+    // TODO: Implement authentication`
+    Ok(UserInformation {
+        id : token,
+        capabilities: UserCapabilities {
+            audio: true,
+            video: true,
+            screenshare: true,
+        },
+    })
 }

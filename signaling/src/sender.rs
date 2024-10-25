@@ -1,14 +1,10 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use futures::{
-    stream::{SplitSink, SplitStream},
-    SinkExt,
-};
+use futures::{stream::{SplitSink, SplitStream}, SinkExt};
 use log::debug;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
-
 use super::packets::PacketS2C;
 
 type Sink = SplitSink<WebSocketStream<TcpStream>, Message>;
@@ -41,4 +37,6 @@ impl Sender {
 }
 
 /// Pair of sink and stream
+
 pub type ReadWritePair = (SplitStream<WebSocketStream<TcpStream>>, Sender);
+

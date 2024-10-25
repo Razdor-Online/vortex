@@ -17,3 +17,8 @@ config.workspace = true
 api = { path = "../api" }
 signaling = { path = "../signaling" }
 rtc = { path = "../rtc" }
+
+[dev-dependencies]
+once_cell.workspace = true
+futures.workspace = true
+tokio-tungstenite.workspace = true

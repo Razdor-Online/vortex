@@ -17,3 +17,8 @@ thiserror.workspace = true
 
 api = { path = "../api" }
 rtc = { path = "../rtc" }
+
+[dev-dependencies]
+tokio-test.workspace = true
+
+
