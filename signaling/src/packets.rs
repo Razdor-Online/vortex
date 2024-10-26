@@ -8,7 +8,7 @@ use tokio_tungstenite::tungstenite::Message;
 
 
 /// Packet sent from the client to the server
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(tag = "type")]
 pub enum PacketC2S {
     /// Connect to a given room
@@ -79,3 +79,4 @@ impl PacketC2S {
         })
     }
 }
+

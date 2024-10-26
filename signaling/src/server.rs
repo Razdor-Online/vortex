@@ -8,7 +8,7 @@ use api::server_error::ServerError;
 use super::{
     client::Client,
     packets::{PacketC2S, PacketS2C},
-    sender::{ReadWritePair, Sender},
+    server_sender::{ReadWritePair, ServerSender},
 };
 
 /// User capabilities
@@ -67,7 +67,7 @@ async fn accept_connection(stream: TcpStream) {
 
     // Prepare the connection for read / write
     let (write, read) = ws_stream.split();
-    let write = Sender::new(write);
+    let write = ServerSender::new(write);
 
     // Handle any resulting errors
     if let Err(error) = handle_connection((read, write.clone())).await {
@@ -114,7 +114,7 @@ async fn on_connect(room_id: String,
 }
 
 #[allow( unused_variables, dead_code)]
-async fn on_auth(room_id: String, token: String, sender: Sender) -> Result<UserInformation> {
+async fn on_auth(room_id: String, token: String, sender: ServerSender<>) -> Result<UserInformation> {
     // TODO: Implement authentication`
     Ok(UserInformation {
         id : token,

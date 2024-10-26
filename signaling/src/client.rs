@@ -10,7 +10,7 @@ use rtc::peer::Peer;
 use rtc::room::{Room, RoomEvent};
 use super::{
     packets::{PacketC2S, PacketS2C},
-    sender::{ReadWritePair, Sender},
+    server_sender::{ReadWritePair, ServerSender},
     server::UserInformation,
 };
 
@@ -143,7 +143,7 @@ impl Client {
     }
 
     /// Handle incoming packet
-    async fn handle_message(&self, packet: PacketC2S, _write: &Sender) -> Result<()> {
+    async fn handle_message(&self, packet: PacketC2S, _write: &ServerSender) -> Result<()> {
         debug!("C->S: {:?}", packet);
         let peer = self.peer.as_ref().unwrap();
 

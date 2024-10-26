@@ -2,6 +2,22 @@ use tokio::sync::{OnceCell};
 use log::info;
 use tokio::task::JoinHandle;
 
+#[macro_export]
+macro_rules! prepare_test_server {
+    () => {{
+        server_utils::init().await;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }}
+}
+
+#[macro_export]
+macro_rules! prepare_test_client {
+    () => {{
+        let req = "ws://127.0.0.1:8080".into_client_request()?;
+        tokio_tungstenite::connect_async(req).await?
+    }}
+}
+
 pub struct Server {
     #[allow(dead_code)]
     server_handle: JoinHandle<()>,
@@ -16,8 +32,8 @@ impl Server {
             let settings = vortex::Settings::new().unwrap();
 
             info!("Starting vortex test server at {}", &settings.http_host);
-            signaling::server::launch(&settings.http_host).
-                await
+            signaling::server::launch(&settings.http_host)
+                .await
                 .expect("Failed to launch server");
         });
         Server {
