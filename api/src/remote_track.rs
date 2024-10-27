@@ -1,8 +1,8 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use crate::media_type::MediaType;
 
 /// Representation of an available track on the server
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct RemoteTrack {
     /// ID of the track
     pub id: String,

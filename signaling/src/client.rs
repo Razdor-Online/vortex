@@ -80,7 +80,7 @@ impl Client {
         let ws_worker = async {
             // Read incoming messages
             while let Some(msg) = read.try_next().await? {
-                if let Some(msg) = PacketC2S::from(msg)? {
+                if let Ok(msg) = PacketC2S::try_from(msg) {
                     self.handle_message(msg, &write).await?;
                 }
             }

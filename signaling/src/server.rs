@@ -84,7 +84,7 @@ async fn accept_connection(stream: TcpStream) {
 async fn handle_connection((mut read, write): ReadWritePair) -> Result<()> {
     // Wait until valid packet is sent
     while let Some(msg) = read.next().await {
-        if let Some(packet) = PacketC2S::from(msg?)? {
+        if let Ok(packet) = PacketC2S::try_from(msg?) {
             if let PacketC2S::Connect { room_id, token } = packet {
                 on_connect(room_id, token, (read, write)).await?;
                 break;

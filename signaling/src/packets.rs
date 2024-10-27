@@ -32,8 +32,23 @@ pub enum PacketC2S {
     Negotiation(Negotiation),
 }
 
+impl TryFrom<Message> for PacketC2S {
+    //TODO Specify own error instead of string
+    type Error = &'static str;
+
+    /// Try to create a packet from incoming Message
+    fn try_from(value: Message) -> Result<Self, Self::Error> {
+        if let Message::Text(text) = value {
+            if let Ok(packet) = serde_json::from_str(&text) {
+                return Ok(packet);
+            }
+        }
+        Err("PacketC2S must be Message::Text")
+    }
+}
+
 /// Packet sent from the server to the client
-#[derive(Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(tag = "type")]
 pub enum PacketS2C {
     /// Accept connection to room
@@ -69,14 +84,27 @@ pub enum PacketS2C {
     Error { error: String },
 }
 
-impl PacketC2S {
-    /// Create a packet from incoming Message
-    pub fn from(message: Message) -> Result<Option<Self>> {
-        Ok(if let Message::Text(text) = message {
-            Some(serde_json::from_str(&text)?)
-        } else {
-            None
-        })
+impl PacketS2C {
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap()
     }
 }
+
+impl TryFrom<Message> for PacketS2C {
+    //TODO Specify own error instead of string
+    type Error = &'static str;
+
+    /// Try to create a packet from incoming Message
+    fn try_from(value: Message) -> std::result::Result<Self, <PacketS2C as TryFrom<Message>>::Error> {
+        if let Message::Text(text) = value {
+            if let Ok(packet) = serde_json::from_str(&text) {
+                return Ok(packet);
+            }
+        }
+        Err("PacketS2C must be Message::Text")
+    }
+}
+
+
+
 
