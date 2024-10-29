@@ -4,6 +4,7 @@ use crate::ice_candidate::ICECandidate;
 use crate::media_type::MediaType;
 
 /// Either description or ICE candidate
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Negotiation {

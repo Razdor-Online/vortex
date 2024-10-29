@@ -88,7 +88,7 @@ impl Peer {
                     .load(Ordering::SeqCst));
 
         // Check if this offer is unexpected
-        let sdp_type = description.sdp_type.clone();
+        let sdp_type = description.sdp_type;
         let offer_collision = sdp_type == RTCSdpType::Offer && !ready_for_offer;
 
         // We are the impolite peer hence we ignore the offer

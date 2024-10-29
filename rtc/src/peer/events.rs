@@ -22,11 +22,12 @@ impl Peer {
     /// Register a new track that the client wants to provide
     pub async fn register_track(&self, id: String, media_type: MediaType) -> Result<()> {
         let mut track_map = self.track_map.lock().await;
-        if track_map.contains_key(&media_type) {
-            return Err(ServerError::MediaTypeSatisfied.into());
-        } else {
-            track_map.insert(media_type, id);
+        
+        if let std::collections::hash_map::Entry::Vacant(e) = track_map.entry(media_type) {
+            e.insert(id);
             Ok(())
+        } else {
+            Err(ServerError::MediaTypeSatisfied.into())
         }
     }
 

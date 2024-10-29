@@ -8,6 +8,8 @@ use tokio_tungstenite::tungstenite::Message;
 
 
 /// Packet sent from the client to the server
+
+#[allow(clippy::large_enum_variant)]
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(tag = "type")]
 pub enum PacketC2S {
@@ -48,6 +50,7 @@ impl TryFrom<Message> for PacketC2S {
 }
 
 /// Packet sent from the server to the client
+#[allow(clippy::large_enum_variant)]
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(tag = "type")]
 pub enum PacketS2C {

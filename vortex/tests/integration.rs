@@ -31,10 +31,9 @@ async fn start_server_and_connect() -> Result<()> {
         token: "token".to_string(),
     }).await?;
 
-    while let Some(msg) = read.next().await {
+    if let Some(msg) = read.next().await {
         let accept = PacketS2C::try_from(msg?).unwrap();
         assert_eq!(accept.to_json(),"{\"type\":\"Accept\",\"available_tracks\":[],\"user_ids\":[\"token\"]}");
-        break
     }
 
     Ok(())
@@ -52,9 +51,8 @@ async fn start_server_and_negotiate () -> Result<()> {
         token: "token".to_string(),
     }).await?;
 
-    while let Some(msg) = read.next().await {
+    if let Some(msg) = read.next().await {
         let _accept = PacketS2C::try_from(msg?).unwrap();
-        break
     }
 
     let negotiation = PacketC2S::Negotiation(negotiation::Negotiation::SDP {
@@ -64,9 +62,8 @@ async fn start_server_and_negotiate () -> Result<()> {
     write.send(negotiation).await?;
 
 
-    while let Some(msg) = read.next().await {
+    if let Some(msg) = read.next().await {
         let _accept = PacketS2C::try_from(msg?).unwrap();
-        break
     }
 
     Ok(())
