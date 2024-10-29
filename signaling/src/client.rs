@@ -1,18 +1,21 @@
 use std::sync::Arc;
 
-use anyhow::Result;
-use futures::{future::{select, Either}, pin_mut, FutureExt, TryStreamExt};
-use log::{debug, info};
-use postage::stream::Stream;
-use api::negotiation::Negotiation;
-use api::server_error::ServerError;
-use rtc::peer::Peer;
-use rtc::room::{Room, RoomEvent};
 use super::{
     packets::{PacketC2S, PacketS2C},
-    server_sender::{ReadWritePair, ServerSender},
     server::UserInformation,
+    server_sender::{ReadWritePair, ServerSender},
 };
+use anyhow::Result;
+use api::negotiation::Negotiation;
+use api::server_error::ServerError;
+use futures::{
+    future::{select, Either},
+    pin_mut, FutureExt, TryStreamExt,
+};
+use log::{debug, info};
+use postage::stream::Stream;
+use rtc::peer::Peer;
+use rtc::room::{Room, RoomEvent};
 
 /// Information about user, room and peer connection
 pub struct Client {

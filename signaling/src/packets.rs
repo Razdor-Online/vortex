@@ -1,11 +1,7 @@
 use anyhow::Result;
-use api::{
-    negotiation::Negotiation,
-    remote_track::RemoteTrack
-};
+use api::{negotiation::Negotiation, remote_track::RemoteTrack};
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::tungstenite::Message;
-
 
 /// Packet sent from the client to the server
 
@@ -98,7 +94,9 @@ impl TryFrom<Message> for PacketS2C {
     type Error = &'static str;
 
     /// Try to create a packet from incoming Message
-    fn try_from(value: Message) -> std::result::Result<Self, <PacketS2C as TryFrom<Message>>::Error> {
+    fn try_from(
+        value: Message,
+    ) -> std::result::Result<Self, <PacketS2C as TryFrom<Message>>::Error> {
         if let Message::Text(text) = value {
             if let Ok(packet) = serde_json::from_str(&text) {
                 return Ok(packet);
@@ -107,7 +105,3 @@ impl TryFrom<Message> for PacketS2C {
         Err("PacketS2C must be Message::Text")
     }
 }
-
-
-
-

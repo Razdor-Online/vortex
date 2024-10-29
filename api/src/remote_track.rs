@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::media_type::MediaType;
+use serde::{Deserialize, Serialize};
 
 /// Representation of an available track on the server
 #[derive(Debug, Clone, Deserialize, Serialize)]

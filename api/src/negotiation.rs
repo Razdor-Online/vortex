@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use crate::ice_candidate::ICECandidate;
 use crate::media_type::MediaType;
+use serde::{Deserialize, Serialize};
+use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 
 /// Either description or ICE candidate
 #[allow(clippy::large_enum_variant)]

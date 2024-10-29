@@ -11,9 +11,9 @@ use utils::client_sender::ClientSender;
 #[tokio::test]
 async fn start_server_and_test() -> Result<()> {
     prepare_test_server!();
-    let (stream, _)   = prepare_test_client!();
+    let (stream, _) = prepare_test_client!();
 
-    let(write, _read) = stream.split();
+    let (write, _read) = stream.split();
     let _write = ClientSender::new(write);
 
     Ok(())
@@ -22,45 +22,52 @@ async fn start_server_and_test() -> Result<()> {
 #[tokio::test]
 async fn start_server_and_connect() -> Result<()> {
     prepare_test_server!();
-    let (stream, _)  = prepare_test_client!();
-    let(write, mut read) = stream.split();
+    let (stream, _) = prepare_test_client!();
+    let (write, mut read) = stream.split();
     let write = ClientSender::new(write);
 
-    write.send(PacketC2S::Connect {
-        room_id: "1".to_string(),
-        token: "token".to_string(),
-    }).await?;
+    write
+        .send(PacketC2S::Connect {
+            room_id: "1".to_string(),
+            token: "token".to_string(),
+        })
+        .await?;
 
     if let Some(msg) = read.next().await {
         let accept = PacketS2C::try_from(msg?).unwrap();
-        assert_eq!(accept.to_json(),"{\"type\":\"Accept\",\"available_tracks\":[],\"user_ids\":[\"token\"]}");
+        assert_eq!(
+            accept.to_json(),
+            "{\"type\":\"Accept\",\"available_tracks\":[],\"user_ids\":[\"token\"]}"
+        );
     }
 
     Ok(())
 }
 
 #[tokio::test]
-async fn start_server_and_negotiate () -> Result<()> {
+async fn start_server_and_negotiate() -> Result<()> {
     prepare_test_server!();
-    let (stream, _)  = prepare_test_client!();
-    let(write, mut read) = stream.split();
+    let (stream, _) = prepare_test_client!();
+    let (write, mut read) = stream.split();
     let write = ClientSender::new(write);
 
-    write.send(PacketC2S::Connect {
-        room_id: "1".to_string(),
-        token: "token".to_string(),
-    }).await?;
+    write
+        .send(PacketC2S::Connect {
+            room_id: "1".to_string(),
+            token: "token".to_string(),
+        })
+        .await?;
 
     if let Some(msg) = read.next().await {
         let _accept = PacketS2C::try_from(msg?).unwrap();
     }
 
     let negotiation = PacketC2S::Negotiation(negotiation::Negotiation::SDP {
-        description: webrtc::peer_connection::sdp::session_description::RTCSessionDescription::default(),
-        media_type_buffer: Some(vec![])
+        description:
+            webrtc::peer_connection::sdp::session_description::RTCSessionDescription::default(),
+        media_type_buffer: Some(vec![]),
     });
     write.send(negotiation).await?;
-
 
     if let Some(msg) = read.next().await {
         let _accept = PacketS2C::try_from(msg?).unwrap();
@@ -68,5 +75,3 @@ async fn start_server_and_negotiate () -> Result<()> {
 
     Ok(())
 }
-
-

@@ -1,7 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
+use super::Peer;
 use anyhow::Result;
+use api::media_type::MediaType;
+use api::negotiation::Negotiation;
+use api::server_error::ServerError;
 use log::{debug, error};
+use webrtc::rtp_transceiver::RTCRtpTransceiver;
 use webrtc::{
     peer_connection::peer_connection_state::RTCPeerConnectionState,
     rtcp::payload_feedbacks::picture_loss_indication::PictureLossIndication,
@@ -12,17 +17,12 @@ use webrtc::{
     },
     Error,
 };
-use webrtc::rtp_transceiver::RTCRtpTransceiver;
-use api::media_type::MediaType;
-use api::negotiation::Negotiation;
-use api::server_error::ServerError;
-use super::Peer;
 
 impl Peer {
     /// Register a new track that the client wants to provide
     pub async fn register_track(&self, id: String, media_type: MediaType) -> Result<()> {
         let mut track_map = self.track_map.lock().await;
-        
+
         if let std::collections::hash_map::Entry::Vacant(e) = track_map.entry(media_type) {
             e.insert(id);
             Ok(())
@@ -42,41 +42,40 @@ impl Peer {
         let peer = self.clone();
 
         // Set handler for connection state
-        self.connection
-            .on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
+        self.connection.on_peer_connection_state_change(Box::new(
+            move |s: RTCPeerConnectionState| {
                 debug!("Peer connection state: {}", s);
                 Box::pin(async {})
-            }));
+            },
+        ));
 
         // Monitor negotiation state
         let peer_negotiation = peer.clone();
-        self.connection
-            .on_negotiation_needed(Box::new(move || {
-                let peer_negotiation = peer_negotiation.clone();
-                Box::pin(async move {
-                    if let Err(error) = peer_negotiation.renegotiate().await {
-                        error!("Failed to re-negotiate: {}", error.to_string());
-                    }
-                })
-            }));
+        self.connection.on_negotiation_needed(Box::new(move || {
+            let peer_negotiation = peer_negotiation.clone();
+            Box::pin(async move {
+                if let Err(error) = peer_negotiation.renegotiate().await {
+                    error!("Failed to re-negotiate: {}", error.to_string());
+                }
+            })
+        }));
 
         // Catch any new ICE candidates
         let peer_ice = peer.clone();
-        self.connection
-            .on_ice_candidate(Box::new(move |candidate| {
-                let negotiation_fn = peer_ice.negotiation_fn.clone();
-                Box::pin(async move {
-                    if let Some(candidate) = candidate {
-                        if let Ok(candidate) = candidate.to_json() {
-                            (negotiation_fn)(Negotiation::ICE {
-                                candidate: candidate.into(),
-                            })
-                            .await
-                            .ok();
-                        }
+        self.connection.on_ice_candidate(Box::new(move |candidate| {
+            let negotiation_fn = peer_ice.negotiation_fn.clone();
+            Box::pin(async move {
+                if let Some(candidate) = candidate {
+                    if let Ok(candidate) = candidate.to_json() {
+                        (negotiation_fn)(Negotiation::ICE {
+                            candidate: candidate.into(),
+                        })
+                        .await
+                        .ok();
                     }
-                })
-            }));
+                }
+            })
+        }));
 
         // Set handler for new tracks
         self.connection

@@ -1,15 +1,15 @@
-use std::{pin::Pin};
+use std::pin::Pin;
 
-use anyhow::Result;
-use futures::{Future, StreamExt};
-use log::info;
-use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
-use api::server_error::ServerError;
 use super::{
     client::Client,
     packets::{PacketC2S, PacketS2C},
     server_sender::{ReadWritePair, ServerSender},
 };
+use anyhow::Result;
+use api::server_error::ServerError;
+use futures::{Future, StreamExt};
+use log::info;
+use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 /// User capabilities
 #[derive(Default, Debug)]
@@ -92,30 +92,25 @@ async fn handle_connection((mut read, write): ReadWritePair) -> Result<()> {
     Ok(())
 }
 
-async fn on_connect(room_id: String,
-                    token: String,
-                    read_write_pair: ReadWritePair) -> Result<()> {
+async fn on_connect(room_id: String, token: String, read_write_pair: ReadWritePair) -> Result<()> {
     // Authenticate the client
-    let  (read, write) = read_write_pair;
-    match on_auth(room_id.to_owned(), token, write.clone()).await
-    {
+    let (read, write) = read_write_pair;
+    match on_auth(room_id.to_owned(), token, write.clone()).await {
         Ok(user) => {
             info!("Authenticated user {} for room {room_id}", user.id);
             // Create a new client
             let client = Client::new(user, room_id);
             client.run((read, write)).await
         }
-        Err(_) => {
-            Err(ServerError::FailedToAuthenticate.into())
-        }
+        Err(_) => Err(ServerError::FailedToAuthenticate.into()),
     }
 }
 
-#[allow( unused_variables, dead_code)]
-async fn on_auth(room_id: String, token: String, sender: ServerSender<>) -> Result<UserInformation> {
+#[allow(unused_variables, dead_code)]
+async fn on_auth(room_id: String, token: String, sender: ServerSender) -> Result<UserInformation> {
     // TODO: Implement authentication`
     Ok(UserInformation {
-        id : token,
+        id: token,
         capabilities: UserCapabilities {
             audio: true,
             video: true,

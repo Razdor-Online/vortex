@@ -11,6 +11,8 @@ use std::{
 };
 
 use anyhow::Result;
+use api::media_type::MediaType;
+use api::negotiation::Negotiation;
 use futures::Future;
 use log::warn;
 use webrtc::{
@@ -20,8 +22,6 @@ use webrtc::{
         signaling_state::RTCSignalingState,
     },
 };
-use api::media_type::MediaType;
-use api::negotiation::Negotiation;
 //use crate::signaling::packets::{MediaType, Negotiation};
 
 use super::Peer;

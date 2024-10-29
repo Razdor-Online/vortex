@@ -1,12 +1,12 @@
-use std::sync::{Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
-use futures::{SinkExt};
-use futures::stream::{SplitSink};
+use futures::stream::SplitSink;
+use futures::SinkExt;
 use log::debug;
+use signaling::packets::PacketC2S;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
-use signaling::packets::{PacketC2S};
 
 type Sink = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>;
 
@@ -17,7 +17,6 @@ pub struct ClientSender {
 }
 
 impl ClientSender {
-
     /// Create a new Sender
     pub fn new(stream: Sink) -> Self {
         ClientSender {
