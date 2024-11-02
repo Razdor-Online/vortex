@@ -11,7 +11,10 @@ use std::{
 };
 
 use anyhow::Result;
+use api::media_type::MediaType;
+use api::negotiation::Negotiation;
 use futures::Future;
+use log::warn;
 use webrtc::{
     ice_transport::ice_candidate::RTCIceCandidateInit,
     peer_connection::{
@@ -19,8 +22,7 @@ use webrtc::{
         signaling_state::RTCSignalingState,
     },
 };
-
-use crate::signaling::packets::{MediaType, Negotiation};
+//use crate::signaling::packets::{MediaType, Negotiation};
 
 use super::Peer;
 
@@ -86,7 +88,7 @@ impl Peer {
                     .load(Ordering::SeqCst));
 
         // Check if this offer is unexpected
-        let sdp_type = description.sdp_type.clone();
+        let sdp_type = description.sdp_type;
         let offer_collision = sdp_type == RTCSdpType::Offer && !ready_for_offer;
 
         // We are the impolite peer hence we ignore the offer
@@ -123,7 +125,7 @@ impl Peer {
                 .await?;
 
             // Send an answer back
-            (self.negotation_fn)(Negotiation::SDP {
+            (self.negotiation_fn)(Negotiation::SDP {
                 description: answer,
                 media_type_buffer: None,
             })

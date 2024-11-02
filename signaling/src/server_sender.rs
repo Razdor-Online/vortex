@@ -1,27 +1,27 @@
 use std::sync::Arc;
 
+use super::packets::PacketS2C;
 use anyhow::Result;
 use futures::{
     stream::{SplitSink, SplitStream},
     SinkExt,
 };
+use log::debug;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{tungstenite::Message, WebSocketStream};
-
-use super::packets::PacketS2C;
 
 type Sink = SplitSink<WebSocketStream<TcpStream>, Message>;
 
 /// Sink side of the WebSocket stream behind a Mutex for distributed writing
 #[derive(Clone)]
-pub struct Sender {
+pub struct ServerSender {
     write: Arc<Mutex<Sink>>,
 }
 
-impl Sender {
+impl ServerSender {
     /// Create a new Sender
     pub fn new(sink: Sink) -> Self {
-        Sender {
+        ServerSender {
             write: Arc::new(Mutex::new(sink)),
         }
     }
@@ -40,4 +40,5 @@ impl Sender {
 }
 
 /// Pair of sink and stream
-pub type ReadWritePair = (SplitStream<WebSocketStream<TcpStream>>, Sender);
+
+pub type ReadWritePair = (SplitStream<WebSocketStream<TcpStream>>, ServerSender);

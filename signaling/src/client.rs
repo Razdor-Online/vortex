@@ -1,22 +1,21 @@
 use std::sync::Arc;
 
+use super::{
+    packets::{PacketC2S, PacketS2C},
+    server::UserInformation,
+    server_sender::{ReadWritePair, ServerSender},
+};
 use anyhow::Result;
+use api::negotiation::Negotiation;
+use api::server_error::ServerError;
 use futures::{
     future::{select, Either},
     pin_mut, FutureExt, TryStreamExt,
 };
+use log::{debug, info};
 use postage::stream::Stream;
-
-use crate::rtc::{
-    peer::Peer,
-    room::{Room, RoomEvent},
-};
-
-use super::{
-    packets::{Negotiation, PacketC2S, PacketS2C, ServerError},
-    sender::{ReadWritePair, Sender},
-    server::UserInformation,
-};
+use rtc::peer::Peer;
+use rtc::room::{Room, RoomEvent};
 
 /// Information about user, room and peer connection
 pub struct Client {
@@ -84,7 +83,7 @@ impl Client {
         let ws_worker = async {
             // Read incoming messages
             while let Some(msg) = read.try_next().await? {
-                if let Some(msg) = PacketC2S::from(msg)? {
+                if let Ok(msg) = PacketC2S::try_from(msg) {
                     self.handle_message(msg, &write).await?;
                 }
             }
@@ -147,7 +146,7 @@ impl Client {
     }
 
     /// Handle incoming packet
-    async fn handle_message(&self, packet: PacketC2S, _write: &Sender) -> Result<()> {
+    async fn handle_message(&self, packet: PacketC2S, _write: &ServerSender) -> Result<()> {
         debug!("C->S: {:?}", packet);
         let peer = self.peer.as_ref().unwrap();
 

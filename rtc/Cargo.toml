@@ -1,0 +1,16 @@
+[package]
+name = "rtc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+webrtc.workspace = true
+tokio.workspace = true
+log.workspace = true
+dashmap.workspace = true
+postage.workspace = true
+futures.workspace = true
+lazy_static.workspace = true
+
+api = { path = "../api" }

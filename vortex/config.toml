@@ -1,0 +1,5 @@
+http_host = '0.0.0.0:8080'
+ws_url = 'wss://vortex.revolt.chat'
+manage_token = '<token>'
+rtc_min_port = 10000
+rtc_max_port = 11000
